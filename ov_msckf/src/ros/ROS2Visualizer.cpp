@@ -45,40 +45,40 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
   image_transport::ImageTransport it(node);
 
   // Setup pose and path publisher
-  pub_poseimu = node->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("poseimu", 2);
+  pub_poseimu = node->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("~/poseimu", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_poseimu->get_topic_name());
-  pub_odomimu = node->create_publisher<nav_msgs::msg::Odometry>("odomimu", 2);
+  pub_odomimu = node->create_publisher<nav_msgs::msg::Odometry>("~/odomimu", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_odomimu->get_topic_name());
-  pub_pathimu = node->create_publisher<nav_msgs::msg::Path>("pathimu", 2);
+  pub_pathimu = node->create_publisher<nav_msgs::msg::Path>("~/pathimu", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_pathimu->get_topic_name());
 
   // 3D points publishing
-  pub_points_msckf = node->create_publisher<sensor_msgs::msg::PointCloud2>("points_msckf", 2);
+  pub_points_msckf = node->create_publisher<sensor_msgs::msg::PointCloud2>("~/points_msckf", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_points_msckf->get_topic_name());
-  pub_points_slam = node->create_publisher<sensor_msgs::msg::PointCloud2>("points_slam", 2);
+  pub_points_slam = node->create_publisher<sensor_msgs::msg::PointCloud2>("~/points_slam", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_points_msckf->get_topic_name());
-  pub_points_aruco = node->create_publisher<sensor_msgs::msg::PointCloud2>("points_aruco", 2);
+  pub_points_aruco = node->create_publisher<sensor_msgs::msg::PointCloud2>("~/points_aruco", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_points_aruco->get_topic_name());
-  pub_points_sim = node->create_publisher<sensor_msgs::msg::PointCloud2>("points_sim", 2);
+  pub_points_sim = node->create_publisher<sensor_msgs::msg::PointCloud2>("~/points_sim", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_points_sim->get_topic_name());
 
   // Our tracking image
-  it_pub_tracks = it.advertise("trackhist", 2);
+  it_pub_tracks = it.advertise("~/trackhist", 2);
   PRINT_DEBUG("Publishing: %s\n", it_pub_tracks.getTopic().c_str());
 
   // Groundtruth publishers
-  pub_posegt = node->create_publisher<geometry_msgs::msg::PoseStamped>("posegt", 2);
+  pub_posegt = node->create_publisher<geometry_msgs::msg::PoseStamped>("~/posegt", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_posegt->get_topic_name());
-  pub_pathgt = node->create_publisher<nav_msgs::msg::Path>("pathgt", 2);
+  pub_pathgt = node->create_publisher<nav_msgs::msg::Path>("~/pathgt", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_pathgt->get_topic_name());
 
   // Loop closure publishers
-  pub_loop_pose = node->create_publisher<nav_msgs::msg::Odometry>("loop_pose", 2);
-  pub_loop_point = node->create_publisher<sensor_msgs::msg::PointCloud>("loop_feats", 2);
-  pub_loop_extrinsic = node->create_publisher<nav_msgs::msg::Odometry>("loop_extrinsic", 2);
-  pub_loop_intrinsics = node->create_publisher<sensor_msgs::msg::CameraInfo>("loop_intrinsics", 2);
-  it_pub_loop_img_depth = it.advertise("loop_depth", 2);
-  it_pub_loop_img_depth_color = it.advertise("loop_depth_colored", 2);
+  pub_loop_pose = node->create_publisher<nav_msgs::msg::Odometry>("~/loop_pose", 2);
+  pub_loop_point = node->create_publisher<sensor_msgs::msg::PointCloud>("~/loop_feats", 2);
+  pub_loop_extrinsic = node->create_publisher<nav_msgs::msg::Odometry>("~/loop_extrinsic", 2);
+  pub_loop_intrinsics = node->create_publisher<sensor_msgs::msg::CameraInfo>("~/loop_intrinsics", 2);
+  it_pub_loop_img_depth = it.advertise("~/loop_depth", 2);
+  it_pub_loop_img_depth_color = it.advertise("~/loop_depth_colored", 2);
 
   // Get node namespace
   node->get_parameter<std::string>("namespace", node_namespace);
@@ -170,9 +170,9 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
 
   // Create imu subscriber (handle legacy ros param info)
   std::string topic_imu;
-  _node->declare_parameter<std::string>("topic_imu", "/imu0");
+  // _node->declare_parameter<std::string>("topic_imu", "/imu0");
   _node->get_parameter("topic_imu", topic_imu);
-  parser->parse_external("relative_config_imu", "imu0", "rostopic", topic_imu);
+  // parser->parse_external("relative_config_imu", "imu0", "rostopic", topic_imu);
   sub_imu = _node->create_subscription<sensor_msgs::msg::Imu>(topic_imu, rclcpp::SensorDataQoS(),
                                                               std::bind(&ROS2Visualizer::callback_inertial, this, std::placeholders::_1));
   PRINT_INFO("subscribing to IMU: %s\n", topic_imu.c_str());
@@ -182,12 +182,12 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
   if (_app->get_params().state_options.num_cameras == 2) {
     // Read in the topics
     std::string cam_topic0, cam_topic1;
-    _node->declare_parameter<std::string>("topic_camera" + std::to_string(0), "/cam" + std::to_string(0) + "/image_raw");
+    // _node->declare_parameter<std::string>("topic_camera" + std::to_string(0), "/cam" + std::to_string(0) + "/image_raw");
     _node->get_parameter("topic_camera" + std::to_string(0), cam_topic0);
-    _node->declare_parameter<std::string>("topic_camera" + std::to_string(1), "/cam" + std::to_string(1) + "/image_raw");
+    // _node->declare_parameter<std::string>("topic_camera" + std::to_string(1), "/cam" + std::to_string(1) + "/image_raw");
     _node->get_parameter("topic_camera" + std::to_string(1), cam_topic1);
-    parser->parse_external("relative_config_imucam", "cam" + std::to_string(0), "rostopic", cam_topic0);
-    parser->parse_external("relative_config_imucam", "cam" + std::to_string(1), "rostopic", cam_topic1);
+    // parser->parse_external("relative_config_imucam", "cam" + std::to_string(0), "rostopic", cam_topic0);
+    // parser->parse_external("relative_config_imucam", "cam" + std::to_string(1), "rostopic", cam_topic1);
     // Create sync filter (they have unique pointers internally, so we have to use move logic here...)
     auto image_sub0 = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(_node, cam_topic0);
     auto image_sub1 = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image>>(_node, cam_topic1);
