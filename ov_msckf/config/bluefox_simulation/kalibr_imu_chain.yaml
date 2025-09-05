@@ -1,0 +1,40 @@
+%YAML:1.0
+
+imu0:
+  T_i_b:
+    - [ 1.0, 0.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 0.0, 1.0 ]
+  accelerometer_noise_density: 2.0000e-3  # [ m / s^2 / sqrt(Hz) ]   ( accel "white noise" )
+  accelerometer_random_walk: 3.0000e-3    # [ m / s^3 / sqrt(Hz) ]   ( accel bias diffusion )
+  gyroscope_noise_density: 1.6968e-04     # [ rad / s / sqrt(Hz) ]   ( gyro "white noise" )
+  gyroscope_random_walk: 1.9393e-05       # [ rad / s^2 / sqrt(Hz) ] ( gyro bias diffusion )
+  # rostopic: /uav0/vio/imu
+  time_offset: 0.0
+  update_rate: 125.0
+  # three different modes supported:
+  # "calibrated" (same as "kalibr"), "kalibr", "rpng"
+  model: "kalibr"
+  # Parameters from the Kalibr calibration
+  Tw: # imu0:gyroscope:M
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  R_IMUtoGYRO: # imu0:gyroscope:C_gyro_i
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  Ta: # imu0:accelerometers:M
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  R_IMUtoACC: # Not used by Kalibr
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  Tg: # imu0:gyroscopes:A
+    - [ 0.0, 0.0, 0.0 ]
+    - [ 0.0, 0.0, 0.0 ]
+    - [ 0.0, 0.0, 0.0 ]
+

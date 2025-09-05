@@ -50,6 +50,9 @@
     <depend condition="$ROS_VERSION == 2">ov_core</depend>
     <depend condition="$ROS_VERSION == 2">ov_init</depend>
 
+    <build_depend>ov_core</build_depend>
+    <build_depend>ov_init</build_depend>
+
     <!-- System dependencies for both versions -->
     <depend>eigen</depend>
     <depend>libopencv-dev</depend>
