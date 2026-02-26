@@ -16,45 +16,88 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program.  See <https://www.gnu.org/licenses/>.
  */
 
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <nav_msgs/Odometry.h>
+#ifdef ROS2
+#include <rclcpp/rclcpp.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#else
 #include <ros/ros.h>
+#include <geometry_msgs/pose_stamped.h>
+#include <geometry_msgs/pose_with_covariance_stamped.h>
+#include <geometry_msgs/transform_stamped.h>
+#include <nav_msgs/odometry.h>
+#endif
 
 #include "utils/Recorder.h"
 #include "utils/print.h"
 
 int main(int argc, char **argv) {
 
-  // Create ros node
+#ifdef ROS2
+  rclcpp::init(argc, argv);
+  auto node = rclcpp::Node::make_shared("pose_to_file");
+
+  std::string verbosity;
+  node->declare_parameter<std::string>("verbosity", "INFO");
+  node->get_parameter("verbosity", verbosity);
+  ov_core::Printer::setPrintLevel(verbosity);
+
+  std::string topic, topic_type, fileoutput;
+  node->declare_parameter<std::string>("topic", "");
+  node->declare_parameter<std::string>("topic_type", "");
+  node->declare_parameter<std::string>("output", "");
+  node->get_parameter("topic", topic);
+  node->get_parameter("topic_type", topic_type);
+  node->get_parameter("output", fileoutput);
+#else
   ros::init(argc, argv, "pose_to_file");
   ros::NodeHandle nh("~");
 
-  // Verbosity setting
   std::string verbosity;
   nh.param<std::string>("verbosity", verbosity, "INFO");
   ov_core::Printer::setPrintLevel(verbosity);
 
-  // Get parameters to subscribe
   std::string topic, topic_type, fileoutput;
   nh.getParam("topic", topic);
   nh.getParam("topic_type", topic_type);
   nh.getParam("output", fileoutput);
+#endif
 
-  // Debug
   PRINT_DEBUG("Done reading config values");
   PRINT_DEBUG(" - topic = %s", topic.c_str());
   PRINT_DEBUG(" - topic_type = %s", topic_type.c_str());
   PRINT_DEBUG(" - file = %s", fileoutput.c_str());
 
-  // Create the recorder object
   ov_eval::Recorder recorder(fileoutput);
 
-  // Subscribe to topic
+#ifdef ROS2
+  rclcpp::SubscriptionBase::SharedPtr sub;
+  if (topic_type == "PoseWithCovarianceStamped") {
+    sub = node->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+        topic, 10, std::bind(&ov_eval::Recorder::callback_posecovariance, &recorder, std::placeholders::_1));
+  } else if (topic_type == "PoseStamped") {
+    sub = node->create_subscription<geometry_msgs::msg::PoseStamped>(
+        topic, 10, std::bind(&ov_eval::Recorder::callback_pose, &recorder, std::placeholders::_1));
+  } else if (topic_type == "TransformStamped") {
+    sub = node->create_subscription<geometry_msgs::msg::TransformStamped>(
+        topic, 10, std::bind(&ov_eval::Recorder::callback_transform, &recorder, std::placeholders::_1));
+  } else if (topic_type == "Odometry") {
+    sub = node->create_subscription<nav_msgs::msg::Odometry>(
+        topic, 10, std::bind(&ov_eval::Recorder::callback_odometry, &recorder, std::placeholders::_1));
+  } else {
+    PRINT_ERROR("The specified topic type is not supported");
+    PRINT_ERROR("topic_type = %s", topic_type.c_str());
+    PRINT_ERROR("please select from: PoseWithCovarianceStamped, PoseStamped, TransformStamped, Odometry");
+    std::exit(EXIT_FAILURE);
+  }
+  rclcpp::spin(node);
+  rclcpp::shutdown();
+#else
   ros::Subscriber sub;
   if (topic_type == std::string("PoseWithCovarianceStamped")) {
     sub = nh.subscribe(topic, 9999, &ov_eval::Recorder::callback_posecovariance, &recorder);
@@ -70,8 +113,8 @@ int main(int argc, char **argv) {
     PRINT_ERROR("please select from: PoseWithCovarianceStamped, PoseStamped, TransformStamped, Odometry");
     std::exit(EXIT_FAILURE);
   }
-
-  // Done!
   ros::spin();
+#endif
+
   return EXIT_SUCCESS;
 }

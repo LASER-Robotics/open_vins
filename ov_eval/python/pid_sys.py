@@ -15,18 +15,35 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+# along with this program.  See <https://www.gnu.org/licenses/>.
 
 import os
 import psutil
-import rospy
 import sys
+import time
 
+ROS_VERSION = int(os.environ.get('ROS_VERSION', 0))
+
+if ROS_VERSION == 1:
+    import rospy
+elif ROS_VERSION == 2:
+    import rclpy
+else:
+    print("Error: ROS_VERSION not detected. Please source your ROS environment.")
+    sys.exit(-1)
+
+def log_info(msg):
+    if ROS_VERSION == 1: rospy.loginfo(msg)
+    else: print("[INFO] %s" % msg)
+
+def log_err(msg):
+    if ROS_VERSION == 1: rospy.logerr(msg)
+    else: print("[ERROR] %s" % msg)
+
+def is_shutdown():
+    return rospy.is_shutdown() if ROS_VERSION == 1 else not rclpy.ok()
 
 def get_process_name(process_name, doprint=False):
-    # try to get the process using psutil
-    # https://stackoverflow.com/a/2241047/7718197
     processes = []
     for proc in psutil.process_iter():
         name, exe, cmdline = "", "", []
@@ -38,43 +55,53 @@ def get_process_name(process_name, doprint=False):
             pass
         except psutil.NoSuchProcess:
             continue
-        if name == process_name or cmdline[0] == process_name or os.path.basename(exe) == process_name:
+        
+        match = False
+        if name == process_name:
+            match = True
+        elif len(cmdline) > 0 and cmdline[0] == process_name:
+            match = True
+        elif exe and os.path.basename(exe) == process_name:
+            match = True
+
+        if match:
             if doprint:
-                rospy.loginfo("adding new node monitor (pid %d)" % (proc.pid))
+                log_info("adding new node monitor (pid %d)" % (proc.pid))
             processes.append(proc)
-    # if we have a process, then success
+            
     if len(processes) > 0:
         return processes
-    # else we have failed!
-    rospy.logerr("unable to find process for %s" % (process_name))
+    log_err("unable to find process for %s" % (process_name))
     return False
-
 
 if __name__ == '__main__':
 
-    # initialize this ros node
-    rospy.init_node("pid_sys")
+    if ROS_VERSION == 1:
+        rospy.init_node("pid_sys")
+        rate_val = 2
+        sleep_func = rospy.Rate(rate_val).sleep
+    else:
+        rclpy.init()
+        node = rclpy.create_node("pid_sys")
+        sleep_func = lambda: time.sleep(0.5)
 
-    # check if we have our params
     if len(sys.argv) < 2:
-        rospy.logerr("please specify process name")
-        rospy.logerr("python pid_sys.py <command-name>")
+        log_err("please specify process name")
+        log_err("python pid_sys.py <command-name>")
+        if ROS_VERSION == 2: rclpy.shutdown()
         sys.exit(-1)
 
-    # load our process, keep trying until we connect to it
     processes = False
-    rate = rospy.Rate(2)
-    while processes == False and not rospy.is_shutdown():
+    while processes == False and not is_shutdown():
         processes = get_process_name(sys.argv[1], True)
+        if processes == False:
+            sleep_func()
 
-    # exit if we should end
-    if rospy.is_shutdown():
+    if is_shutdown():
+        if ROS_VERSION == 2: rclpy.shutdown()
         sys.exit(-1)
 
-    # now lets loop and get the stats for these processes
-    while not rospy.is_shutdown():
-
-        # summed over all the pid for this process
+    while not is_shutdown():
         sum_perc_cpu = 0.0
         sum_perc_mem = 0.0
         sum_threads = 0
@@ -89,17 +116,19 @@ if __name__ == '__main__':
             sum_perc_mem += perc_mem
             sum_threads += threads
 
-        # print what the total summed value is
         print("cpu percent = %.3f" % sum_perc_cpu)
         print("mem percent = %.3f" % sum_perc_mem)
         print("num threads = %d" % sum_threads)
         processes = False
 
-        # try to get the process again, this allows us to handle
-        # the spawning of new threads or removing of threads that have finished
-        while processes == False and not rospy.is_shutdown():
+        while processes == False and not is_shutdown():
             processes = get_process_name(sys.argv[1])
             if not processes == False:
                 for p in processes:
-                    p.cpu_percent(interval=None)
-            rate.sleep()
+                    try:
+                        p.cpu_percent(interval=None)
+                    except:
+                        continue
+            sleep_func()
+
+    if ROS_VERSION == 2: rclpy.shutdown()
