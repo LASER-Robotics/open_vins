@@ -690,49 +690,51 @@ void ROS2Visualizer::publish_images() {
 }
 
 void ROS2Visualizer::publish_features() {
+  if (pub_points_msckf->get_subscription_count() > 0 || pub_num_points_msckf->get_subscription_count() > 0) {
+    // Get our good MSCKF features
+    std::vector<Eigen::Vector3d> feats_msckf = _app->get_good_features_MSCKF();
+    sensor_msgs::msg::PointCloud2 cloud = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_msckf, node_namespace);
+    pub_points_msckf->publish(cloud);
 
-  // Check if we have subscribers
-  if (pub_points_msckf->get_subscription_count() == 0 && pub_points_slam->get_subscription_count() == 0 &&
-      pub_points_aruco->get_subscription_count() == 0 && pub_points_sim->get_subscription_count() == 0)
-    return;
+    std_msgs::msg::Float64 num_msckf_points;
+    num_msckf_points.data = feats_msckf.size();
+    pub_num_points_msckf->publish(num_msckf_points);
+  }
 
-  // Get our good MSCKF features
-  std::vector<Eigen::Vector3d> feats_msckf = _app->get_good_features_MSCKF();
-  sensor_msgs::msg::PointCloud2 cloud = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_msckf, node_namespace);
-  pub_points_msckf->publish(cloud);
+  if (pub_points_slam->get_subscription_count() > 0 || pub_num_points_slam->get_subscription_count() > 0) {
+    // Get our good SLAM features
+    std::vector<Eigen::Vector3d> feats_slam = _app->get_features_SLAM();
+    sensor_msgs::msg::PointCloud2 cloud_SLAM = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_slam, node_namespace);
+    pub_points_slam->publish(cloud_SLAM);
 
-  std_msgs::msg::Float64 num_msckf_points;
-  num_msckf_points.data = feats_msckf.size();
-  pub_num_points_msckf->publish(num_msckf_points);
+    std_msgs::msg::Float64 num_slam_points;
+    num_slam_points.data = feats_slam.size();
+    pub_num_points_slam->publish(num_slam_points);
 
-  // Get our good SLAM features
-  std::vector<Eigen::Vector3d> feats_slam = _app->get_features_SLAM();
-  sensor_msgs::msg::PointCloud2 cloud_SLAM = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_slam, node_namespace);
-  pub_points_slam->publish(cloud_SLAM);
+    std_msgs::msg::String string_num_slam_points;
+    std::stringstream ss_num_slam_points;
+    ss_num_slam_points << "-id 1 SLAM feats: " << (int)feats_slam.size();
+    string_num_slam_points.data = ss_num_slam_points.str();
+    pub_status_num_points_slam->publish(string_num_slam_points);
+  }
 
-  std_msgs::msg::Float64 num_slam_points;
-  num_slam_points.data = feats_slam.size();
-  pub_num_points_slam->publish(num_slam_points);
-
-  std_msgs::msg::String string_num_slam_points;
-  std::stringstream ss_num_slam_points;
-  ss_num_slam_points << "-id 1 SLAM feats: " << (int)feats_slam.size();
-  string_num_slam_points.data = ss_num_slam_points.str();
-  pub_status_num_points_slam->publish(string_num_slam_points);
-
-  // Get our good ARUCO features
-  std::vector<Eigen::Vector3d> feats_aruco = _app->get_features_ARUCO();
-  sensor_msgs::msg::PointCloud2 cloud_ARUCO = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_aruco, node_namespace);
-  pub_points_aruco->publish(cloud_ARUCO);
+  if (pub_points_aruco->get_subscription_count() > 0) {
+    // Get our good ARUCO features
+    std::vector<Eigen::Vector3d> feats_aruco = _app->get_features_ARUCO();
+    sensor_msgs::msg::PointCloud2 cloud_ARUCO = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_aruco, node_namespace);
+    pub_points_aruco->publish(cloud_ARUCO);
+  }
 
   // Skip the rest of we are not doing simulation
   if (_sim == nullptr)
     return;
 
-  // Get our good SIMULATION features
-  std::vector<Eigen::Vector3d> feats_sim = _sim->get_map_vec();
-  sensor_msgs::msg::PointCloud2 cloud_SIM = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_sim, node_namespace);
-  pub_points_sim->publish(cloud_SIM);
+  if (pub_points_slam->get_subscription_count() > 0) {
+    // Get our good SIMULATION features
+    std::vector<Eigen::Vector3d> feats_sim = _sim->get_map_vec();
+    sensor_msgs::msg::PointCloud2 cloud_SIM = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_sim, node_namespace);
+    pub_points_sim->publish(cloud_SIM);
+  }
 }
 
 void ROS2Visualizer::publish_groundtruth() {
