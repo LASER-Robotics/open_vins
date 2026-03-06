@@ -62,6 +62,13 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
   pub_points_sim = node->create_publisher<sensor_msgs::msg::PointCloud2>("~/points_sim", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_points_sim->get_topic_name());
 
+  pub_num_points_slam = node->create_publisher<std_msgs::msg::Float64>("~/num_points_slam", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_num_points_slam->get_topic_name());
+  pub_status_num_points_slam = node->create_publisher<std_msgs::msg::String>("~/status_num_points_slam", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_status_num_points_slam->get_topic_name());
+  pub_num_points_msckf = node->create_publisher<std_msgs::msg::Float64>("~/num_points_msckf", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_num_points_msckf->get_topic_name());
+
   // Our tracking image
   it_pub_tracks = it.advertise("~/trackhist", 2);
   PRINT_DEBUG("Publishing: %s\n", it_pub_tracks.getTopic().c_str());
@@ -694,10 +701,24 @@ void ROS2Visualizer::publish_features() {
   sensor_msgs::msg::PointCloud2 cloud = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_msckf, node_namespace);
   pub_points_msckf->publish(cloud);
 
+  std_msgs::msg::Float64 num_msckf_points;
+  num_msckf_points.data = feats_msckf.size();
+  pub_num_points_msckf->publish(num_msckf_points);
+
   // Get our good SLAM features
   std::vector<Eigen::Vector3d> feats_slam = _app->get_features_SLAM();
   sensor_msgs::msg::PointCloud2 cloud_SLAM = ROSVisualizerHelper::get_ros_pointcloud(_node, feats_slam, node_namespace);
   pub_points_slam->publish(cloud_SLAM);
+
+  std_msgs::msg::Float64 num_slam_points;
+  num_slam_points.data = feats_slam.size();
+  pub_num_points_slam->publish(num_slam_points);
+
+  std_msgs::msg::String string_num_slam_points;
+  std::stringstream ss_num_slam_points;
+  ss_num_slam_points << "-id 1 SLAM feats: " << (int)feats_slam.size();
+  string_num_slam_points.data = ss_num_slam_points.str();
+  pub_status_num_points_slam->publish(string_num_slam_points);
 
   // Get our good ARUCO features
   std::vector<Eigen::Vector3d> feats_aruco = _app->get_features_ARUCO();
