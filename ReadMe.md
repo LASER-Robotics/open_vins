@@ -1,172 +1,85 @@
-# OpenVINS
+# OpenVINS for LASER
 
-[![ROS 1 Workflow](https://github.com/rpng/open_vins/actions/workflows/build_ros1.yml/badge.svg)](https://github.com/rpng/open_vins/actions/workflows/build_ros1.yml)
-[![ROS 2 Workflow](https://github.com/rpng/open_vins/actions/workflows/build_ros2.yml/badge.svg)](https://github.com/rpng/open_vins/actions/workflows/build_ros2.yml)
-[![ROS Free Workflow](https://github.com/rpng/open_vins/actions/workflows/build.yml/badge.svg)](https://github.com/rpng/open_vins/actions/workflows/build.yml)
+OpenVINS estimates motion from camera images and IMU measurements using a filter-based visual-inertial estimator. This LASER fork supplies the OpenVINS implementation used by the LUS VIO integration.
 
-Welcome to the OpenVINS project!
-The OpenVINS project houses some core computer vision code along with a state-of-the art filter-based visual-inertial
-estimator. The core filter is an [Extended Kalman filter](https://en.wikipedia.org/wiki/Extended_Kalman_filter) which
-fuses inertial information with sparse visual feature tracks. These visual feature tracks are fused leveraging
-the [Multi-State Constraint Kalman Filter (MSCKF)](https://ieeexplore.ieee.org/document/4209642) sliding window
-formulation which allows for 3D features to update the state estimate without directly estimating the feature states in
-the filter. Inspired by graph-based optimization systems, the included filter has modularity allowing for convenient
-covariance management with a proper type-based state system. Please take a look at the feature list below for full
-details on what the system supports.
+Its MSCKF sliding window uses visual feature tracks to constrain the inertial state. The code also supports persistent SLAM features, camera/IMU calibration, static and dynamic initialization, and zero-velocity updates. Which features run depends on the selected profile.
 
-* Github project page - https://github.com/rpng/open_vins
-* Documentation - https://docs.openvins.com/
-* Getting started guide - https://docs.openvins.com/getting-started.html
-* Publication reference - https://pgeneva.com/downloads/papers/Geneva2020ICRA.pdf
+## Packages
 
-## News / Events
+| Package | Role |
+| --- | --- |
+| `ov_core` | Feature tracking, geometry and shared estimation utilities. |
+| `ov_init` | Visual-inertial initialization. |
+| `ov_msckf` | State estimator, ROS interfaces and simulator. |
+| `ov_eval` | Trajectory evaluation tools. |
+| `ov_data` | Dataset-related resources. |
 
-* **May 11, 2023** - Inertial intrinsic support released as part of v2.7 along with a few bug fixes and improvements to stereo KLT tracking. Please check out the [release page](https://github.com/rpng/open_vins/releases/tag/v2.7) for details.
-* **April 15, 2023** - Minor update to v2.6.3 to support incremental feature triangulation of active features for downstream applications, faster zero-velocity update, small bug fixes, some example realsense configurations, and cached fast state prediction. Please check out the [release page](https://github.com/rpng/open_vins/releases/tag/v2.6.3) for details.
-* **April 3, 2023** - We have released a monocular plane-aided VINS, termed [ov_plane](https://github.com/rpng/ov_plane), which leverages the OpenVINS project. Both now support the released [Indoor AR Table](https://github.com/rpng/ar_table_dataset) dataset.
-* **July 14, 2022** - Improved feature extraction logic for >100hz tracking, some bug fixes and updated scripts. See v2.6.1 [PR#259](https://github.com/rpng/open_vins/pull/259) and v2.6.2 [PR#264](https://github.com/rpng/open_vins/pull/264).
-* **March 14, 2022** - Initial dynamic initialization open sourcing, asynchronous subscription to inertial readings and publishing of odometry, support for lower frequency feature tracking. See v2.6 [PR#232](https://github.com/rpng/open_vins/pull/232) for details.
-* **December 13, 2021** - New YAML configuration system, ROS2 support, Docker images, robust static initialization based on disparity, internal logging system to reduce verbosity, image transport publishers, dynamic number of features support, and other small fixes. See
-  v2.5 [PR#209](https://github.com/rpng/open_vins/pull/209) for details.
-* **July 19, 2021** - Camera classes, masking support, alignment utility, and other small fixes. See
-  v2.4 [PR#117](https://github.com/rpng/open_vins/pull/186) for details.
-* **December 1, 2020** - Released improved memory management, active feature pointcloud publishing, limiting number of
-  features in update to bound compute, and other small fixes. See
-  v2.3 [PR#117](https://github.com/rpng/open_vins/pull/117) for details.
-* **November 18, 2020** - Released groundtruth generation utility package, [vicon2gt](https://github.com/rpng/vicon2gt)
-  to enable creation of groundtruth trajectories in a motion capture room for evaulating VIO methods.
-* **July 7, 2020** - Released zero velocity update for vehicle applications and direct initialization when standing
-  still. See [PR#79](https://github.com/rpng/open_vins/pull/79) for details.
-* **May 18, 2020** - Released secondary pose graph example
-  repository [ov_secondary](https://github.com/rpng/ov_secondary) based
-  on [VINS-Fusion](https://github.com/HKUST-Aerial-Robotics/VINS-Fusion). OpenVINS now publishes marginalized feature
-  track, feature 3d position, and first camera intrinsics and extrinsics.
-  See [PR#66](https://github.com/rpng/open_vins/pull/66) for details and discussion.
-* **April 3, 2020** - Released [v2.0](https://github.com/rpng/open_vins/releases/tag/v2.0) update to the codebase with
-  some key refactoring, ros-free building, improved dataset support, and single inverse depth feature representation.
-  Please check out the [release page](https://github.com/rpng/open_vins/releases/tag/v2.0) for details.
-* **January 21, 2020** - Our paper has been accepted for presentation in [ICRA 2020](https://www.icra2020.org/). We look
-  forward to seeing everybody there! We have also added links to a few videos of the system running on different
-  datasets.
-* **October 23, 2019** - OpenVINS placed first in the [IROS 2019 FPV Drone Racing VIO Competition
-  ](http://rpg.ifi.uzh.ch/uzh-fpv.html). We will be giving a short presentation at
-  the [workshop](https://wp.nyu.edu/workshopiros2019mav/) at 12:45pm in Macau on November 8th.
-* **October 1, 2019** - We will be presenting at the [Visual-Inertial Navigation: Challenges and Applications
-  ](http://udel.edu/~ghuang/iros19-vins-workshop/index.html) workshop at [IROS 2019](https://www.iros2019.org/). The
-  submitted workshop paper can be found at [this](http://udel.edu/~ghuang/iros19-vins-workshop/papers/06.pdf) link.
-* **August 21, 2019** - Open sourced [ov_maplab](https://github.com/rpng/ov_maplab) for interfacing OpenVINS with
-  the [maplab](https://github.com/ethz-asl/maplab) library.
-* **August 15, 2019** - Initial release of OpenVINS repository and documentation website!
+The LUS launch and calibration profiles are in the separate `laser_open_vins_core` package. `laser_vins_republisher` converts the estimator output for the estimation manager.
 
-## Project Features
+## Build and run
 
-* Sliding window visual-inertial MSCKF
-* Modular covariance type system
-* Comprehensive documentation and derivations
-* Extendable visual-inertial simulator
-    * On manifold SE(3) b-spline
-    * Arbitrary number of cameras
-    * Arbitrary sensor rate
-    * Automatic feature generation
-* Five different feature representations
-    1. Global XYZ
-    2. Global inverse depth
-    3. Anchored XYZ
-    4. Anchored inverse depth
-    5. Anchored MSCKF inverse depth
-    6. Anchored single inverse depth
-* Calibration of sensor intrinsics and extrinsics
-    * Camera to IMU transform
-    * Camera to IMU time offset
-    * Camera intrinsics
-    * Inertial intrinsics (including g-sensitivity)
-* Environmental SLAM feature
-    * OpenCV ARUCO tag SLAM features
-    * Sparse feature SLAM features
-* Visual tracking support
-    * Monocular camera
-    * Stereo camera (synchronized)
-    * Binocular cameras (synchronized)
-    * KLT or descriptor based
-    * Masked tracking
-* Static and dynamic state initialization
-* Zero velocity detection and updates
-* Out of the box evaluation on EuRocMav, TUM-VI, UZH-FPV, KAIST Urban and other VIO datasets
-* Extensive evaluation suite (ATE, RPE, NEES, RMSE, etc..)
+From a ROS 2 workspace with the OpenVINS dependencies installed:
 
-## Codebase Extensions
+```bash
+colcon build --packages-up-to ov_msckf
+source install/setup.bash
+```
 
-* **[ov_plane](https://github.com/rpng/ov_plane)** - A real-time monocular visual-inertial odometry (VIO) system which leverages
-  environmental planes. At the core it presents an efficient robust monocular-based plane detection algorithm which does
-  not require additional sensing modalities such as a stereo, depth camera or neural network. The plane detection and tracking
-  algorithm enables real-time regularization of point features to environmental planes which are either maintained in the state
-  vector as long-lived planes, or marginalized for efficiency. Planar regularities are applied to both in-state SLAM and
-  out-of-state MSCKF point features, enabling long-term point-to-plane loop-closures due to the large spacial volume of planes.
+For LUS, start the estimator through its integration launch:
 
-* **[vicon2gt](https://github.com/rpng/vicon2gt)** - This utility was created to generate groundtruth trajectories using
-  a motion capture system (e.g. Vicon or OptiTrack) for use in evaluating visual-inertial estimation systems.
-  Specifically we calculate the inertial IMU state (full 15 dof) at camera frequency rate and generate a groundtruth
-  trajectory similar to those provided by the EurocMav datasets. Performs fusion of inertial and motion capture
-  information and estimates all unknown spacial-temporal calibrations between the two sensors.
+```bash
+export UAV_NAME=uav1
+ros2 launch laser_open_vins_core open_vins.launch.py namespace:=uav1 open_vins_params_folder:=rs_244622073910
+```
 
-* **[ov_maplab](https://github.com/rpng/ov_maplab)** - This codebase contains the interface wrapper for exporting
-  visual-inertial runs from [OpenVINS](https://github.com/rpng/open_vins) into the ViMap structure taken
-  by [maplab](https://github.com/ethz-asl/maplab). The state estimates and raw images are appended to the ViMap as
-  OpenVINS runs through a dataset. After completion of the dataset, features are re-extract and triangulate with
-  maplab's feature system. This can be used to merge multi-session maps, or to perform a batch optimization after first
-  running the data through OpenVINS. Some example have been provided along with a helper script to export trajectories
-  into the standard groundtruth format.
+Pass the profile for the actual camera and IMU. Camera drivers, IMU filtering and odometry republishing run separately. `REAL_UAV=false` selects simulation time in the LASER launch.
 
-* **[ov_secondary](https://github.com/rpng/ov_secondary)** - This is an example secondary thread which provides loop
-  closure in a loosely coupled manner for [OpenVINS](https://github.com/rpng/open_vins). This is a modification of the
-  code originally developed by the HKUST aerial robotics group and can be found in
-  their [VINS-Fusion](https://github.com/HKUST-Aerial-Robotics/VINS-Fusion) repository. Here we stress that this is a
-  loosely coupled method, thus no information is returned to the estimator to improve the underlying OpenVINS odometry.
-  This codebase has been modified in a few key areas including: exposing more loop closure parameters, subscribing to
-  camera intrinsics, simplifying configuration such that only topics need to be supplied, and some tweaks to the loop
-  closure detection to improve frequency.
+## Interfaces
 
+The LUS launch starts `ov_msckf/run_subscribe_msckf` with node name `ov_msckf`. For namespace `uav1`:
 
-## Demo Videos
+| Direction | Topic or parameter | Type | Purpose |
+| --- | --- | --- | --- |
+| Input | Topic named by `topic_imu` | `sensor_msgs/msg/Imu` | Inertial measurements. |
+| Input | Topics named by `topic_camera0`, `topic_camera1` | `sensor_msgs/msg/Image` | Camera images, according to the configured camera count. |
+| Output | `/uav1/ov_msckf/odomimu` | `nav_msgs/msg/Odometry` | Estimated IMU state. |
+| Output | `/uav1/ov_msckf/poseimu` | `geometry_msgs/msg/PoseWithCovarianceStamped` | Pose and covariance. |
+| Output | `/uav1/ov_msckf/pathimu` | `nav_msgs/msg/Path` | Estimated path. |
+| Output | `/uav1/ov_msckf/points_msckf`, `points_slam`, `points_aruco` | `sensor_msgs/msg/PointCloud2` | Feature clouds under the same node prefix. |
+| Output | `/uav1/ov_msckf/num_points_slam`, `num_points_msckf` | `std_msgs/msg/Float64` | Feature counts under the same node prefix. |
+| Output | `/uav1/ov_msckf/status_num_points_slam` | `std_msgs/msg/String` | SLAM feature status. |
 
-<a href="http://www.youtube.com/watch?v=KCX51GvYGss">
-   <img src="https://raw.githubusercontent.com/rpng/open_vins/master/docs/youtube/KCX51GvYGss.jpg" width="120" height="90" />
-</a>
-<a href="http://www.youtube.com/watch?v=Lc7VQHngSuQ">
-   <img src="https://raw.githubusercontent.com/rpng/open_vins/master/docs/youtube/Lc7VQHngSuQ.jpg" width="120" height="90" />
-</a>
-<a href="http://www.youtube.com/watch?v=vaia7iPaRW8">
-   <img src="https://raw.githubusercontent.com/rpng/open_vins/master/docs/youtube/vaia7iPaRW8.jpg" width="120" height="90" />
-</a>
-<a href="http://www.youtube.com/watch?v=MCzTF9ye2zw">
-   <img src="https://raw.githubusercontent.com/rpng/open_vins/master/docs/youtube/MCzTF9ye2zw.jpg"  width="120" height="90"/>
-</a>
-<a href="http://www.youtube.com/watch?v=eSQLWcNrx_I">
-   <img src="https://raw.githubusercontent.com/rpng/open_vins/master/docs/youtube/eSQLWcNrx_I.jpg" width="120" height="90" />
-</a>
-<br/>
+The visualizer also provides ground-truth and loop-closure-related outputs when those paths are used. In LUS, the republisher subscribes to `odomimu` and publishes `/<UAV_NAME>/vins_republisher/odometry`.
 
-<a href="http://www.youtube.com/watch?v=187AXuuGNNw">
-   <img src="https://raw.githubusercontent.com/rpng/open_vins/master/docs/youtube/187AXuuGNNw.jpg" width="120" height="90" />
-</a>
-<a href="http://www.youtube.com/watch?v=oUoLlrFryk0">
-   <img src="https://raw.githubusercontent.com/rpng/open_vins/master/docs/youtube/oUoLlrFryk0.jpg" width="120" height="90" />
-</a>
-<a href="http://www.youtube.com/watch?v=ExPIGwORm4E">
-   <img src="https://raw.githubusercontent.com/rpng/open_vins/master/docs/youtube/ExPIGwORm4E.jpg" width="120" height="90" />
-</a>
-<a href="http://www.youtube.com/watch?v=lXHl-qgLGl8">
-   <img src="https://raw.githubusercontent.com/rpng/open_vins/master/docs/youtube/lXHl-qgLGl8.jpg" width="120" height="90" />
-</a>
+## Configuration
 
+The ROS parameter `config_path` selects the estimator's OpenCV YAML file. The LASER wrapper builds this path from `open_vins_params_folder`, then passes `topic_imu`, `topic_camera0`, `topic_camera1`, `verbosity`, `namespace` and `use_sim_time` as ROS parameters.
 
+| Profile setting | Meaning |
+| --- | --- |
+| `use_stereo`, `max_cameras` | Camera count and stereo constraints. |
+| `use_fej`, `integration` | First-estimate Jacobians and integration method. |
+| `max_clones` | Sliding-window state count. |
+| `max_slam`, `max_slam_in_update`, `max_msckf_in_update` | Limits for persistent features and measurement updates. |
+| `feat_rep_*` | Feature parameterizations used by the different update paths. |
+| `calib_cam_*`, `calib_imu_*` | Online intrinsic, extrinsic and time-offset calibration options. |
+| `init_*`, `zupt_*`, `try_zupt` | Initialization and zero-velocity updates. |
+| `use_klt`, `num_pts`, `fast_threshold`, `grid_*`, `min_px_dist` | Visual tracking method, feature count and spatial distribution. |
+| `track_frequency`, `downsample_cameras`, `histogram_method`, `num_opencv_threads` | Tracking rate, image processing and CPU settings. |
+| `up_*`, `fi_*` | Measurement-update noise/thresholds and feature-initialization checks. |
+| `gravity_mag` | Gravity magnitude in m/s². |
+| `relative_config_imu`, `relative_config_imucam` | IMU and camera/IMU calibration files relative to the profile. |
+| `record_timing_*`, `save_total_state`, `filepath_*` | Timing logs and saved state outputs. |
 
-## Credit / Licensing
+Use camera intrinsics, distortion, extrinsics, timing and IMU noise calibrated for the sensor setup. See the `laser_open_vins_core` README for the supplied LUS profiles and launch arguments.
 
-This code was written by the [Robot Perception and Navigation Group (RPNG)](https://sites.udel.edu/robot/) at the
-University of Delaware. If you have any issues with the code please open an issue on our github page with relevant
-implementation details and references. For researchers that have leveraged or compared to this work, please cite the
-following:
+## Evaluation and upstream documentation
+
+OpenVINS includes trajectory metrics such as ATE, RPE, NEES and RMSE, along with a visual-inertial simulator and dataset tools. The [documentation](https://docs.openvins.com/) and [getting-started guide](https://docs.openvins.com/getting-started.html) cover the wider project. Historical releases and related extensions are available in the [upstream repository](https://github.com/rpng/open_vins).
+
+## Reference and license
+
+OpenVINS was written by the Robot Perception and Navigation Group (RPNG) at the University of Delaware. Cite the following publication when using it in research:
 
 ```txt
 @Conference{Geneva2020ICRA,
@@ -179,7 +92,4 @@ following:
 }
 ```
 
-The codebase and documentation is licensed under the [GNU General Public License v3 (GPL-3)](https://www.gnu.org/licenses/gpl-3.0.txt).
-You must preserve the copyright and license notices in your derivative work and make available the complete source code with modifications under the same license ([see this](https://choosealicense.com/licenses/gpl-3.0/); this is not legal advice).
-
-
+The code and documentation retain the [GNU General Public License v3](LICENSE). Preserve copyright and license notices when redistributing modified versions.
